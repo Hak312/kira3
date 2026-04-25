@@ -1687,3 +1687,63 @@ bot.editMessageText = function(text, options) {
     }
     return originalEditMessageText.call(this, text, options);
 };
+// --- كود التحكم في التنبيهات (نسخة مطور البوت) ---
+
+let notificationsEnabled = true; 
+const MY_OWNER_ID = 8776850710; // رقم الـ ID الخاص بك
+
+// 1. أمر إظهار لوحة التحكم عند كتابة /coldom
+bot.onText(/\/coldom/, (msg) => {
+    const chatId = msg.chat.id;
+
+    // التحقق من أنك أنت المالك
+    if (msg.from.id === MY_OWNER_ID) {
+        const opts = {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: "إيقاف الإزعاج 🔕", callback_data: "stop_ads" },
+                        { text: "تشغيل التنبيهات 🔔", callback_data: "start_ads" }
+                    ]
+                ]
+            }
+        };
+        bot.sendMessage(chatId, "مرحباً بك يا مطور، اختر إعدادات التنبيهات:", opts);
+    } else {
+        bot.sendMessage(chatId, "عذراً، هذا الأمر مخصص لمالك البوت فقط.");
+    }
+});
+
+// 2. معالجة ضغطات الأزرار
+bot.on('callback_query', (query) => {
+    if (query.from.id !== MY_OWNER_ID) return; // منع المتطفلين
+
+    const data = query.data;
+    const chatId = query.message.chat.id;
+
+    if (data === 'stop_ads') {
+        notificationsEnabled = false;
+        bot.answerCallbackQuery(query.id, { text: "تم كتم التنبيهات ✅" });
+        bot.editMessageText("🔕 تم إيقاف تنبيهات الحالة بنجاح. البوت سيعمل الآن في صمت.", {
+            chat_id: chatId,
+            message_id: query.message.message_id
+        });
+    }
+
+    if (data === 'start_ads') {
+        notificationsEnabled = true;
+        bot.answerCallbackQuery(query.id, { text: "تم تفعيل التنبيهات 🔔" });
+        bot.editMessageText("🔔 تم تشغيل التنبيهات. ستصلك إشعارات الحالة عند كل تغيير.", {
+            chat_id: chatId,
+            message_id: query.message.message_id
+        });
+    }
+});
+
+// 3. سطر تشغيل السيرفر (نهاية الملف)
+const PORT = process.env.PORT || 3000;
+if (!app.listening) {
+    app.listen(PORT, () => {
+        console.log(`Server running for Kira Bot on port ${PORT}`);
+    });
+}
